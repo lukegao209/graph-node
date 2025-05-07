@@ -71,11 +71,22 @@ run_graph_node() {
         echo "Waiting for Postgres ($postgres_host:$postgres_port)"
         wait_for "$postgres_host:$postgres_port" -t 120
         sleep 5
-
+        # 处理多个以太坊网络的RPC
+        ethereum_networks=""
+        IFS=',' read -ra NETWORKS <<< "$ethereum"
+        for network in "${NETWORKS[@]}"; do
+            # 去除首尾空格
+            network=$(echo "$network" | xargs)
+            if [ -n "$ethereum_networks" ]; then
+                ethereum_networks="$ethereum_networks "
+            fi
+            ethereum_networks="$ethereum_networks--ethereum-rpc $network"
+        done
+        echo "ethereum_networks: $ethereum_networks"
         exec graph-node \
             --node-id "$node_id" \
             --postgres-url "$postgres_url" \
-            --ethereum-rpc $ethereum \
+            $ethereum_networks \
             --ipfs "$ipfs" \
             ${fork_base:+ --fork-base "$fork_base"}
     fi
